@@ -220,5 +220,12 @@ class SpaceAtEOF(ProcTest):
     flushing = False
 
 
+class SoftHyphen(ProcTest):
+    procdix = "data/space-eof-incond.dix"
+    inputs          = ['.[]\u00ad']
+    expectedOutputs = ['^./.<sent>$[]\u00ad']
+    # whatWeGet = ['^/.<sent>$[]­']
+
+
 # These fail on some systems:
 #from null_flush_invalid_stream_format import *
