@@ -220,5 +220,12 @@ class SpaceAtEOF(ProcTest):
     flushing = False
 
 
+class Nbsp(ProcTest):
+    procdix = "data/space-eof-incond.dix"
+    inputs          = ['.[]­']
+    expectedOutputs = ['^./.<sent>$[]­']
+    # whatWeGet = ['^/.<sent>$[]­']
+
+
 # These fail on some systems:
 #from null_flush_invalid_stream_format import *
