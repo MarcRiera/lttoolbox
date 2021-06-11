@@ -284,11 +284,28 @@ FSTProcessor::wblankPostGen(InputFile& input, UFILE *output)
 {
   UString result = WBLANK_START;
   UChar32 c = 0;
+  bool in_content = false;
 
   while(!input.eof())
   {
     c = input.get();
-    result += c;
+
+    if(in_content && c == '~')
+    {
+      if(result[result.size()-1]==']') {
+        // We just saw the end of a wblank, may want to merge
+        wblankqueue.push(result);
+      }
+      else {
+        // wake-up-mark happened some characters into the wblanked word
+        write(result, output);
+      }
+      return true;
+    }
+    else
+    {
+      result += c;
+    }
 
     if(c == '\\')
     {
@@ -309,16 +326,7 @@ FSTProcessor::wblankPostGen(InputFile& input, UFILE *output)
         }
         else
         {
-          c = input.get();
-          if(c == '~')
-          {
-            wblankqueue.push(result);
-            return true;
-          }
-          else
-          {
-            result += c;
-          }
+          in_content = true; // Assumption: No nested wblanks, always balanced
         }
       }
     }
@@ -788,25 +796,32 @@ FSTProcessor::combineWblanks()
 {
   UString final_wblank;
   UString last_wblank;
+  bool seen_wblank = false;
 
   while(wblankqueue.size() > 0)
   {
     if(wblankqueue.front().compare(WBLANK_FINAL) == 0)
     {
-      if(final_wblank.empty())
-      {
-        final_wblank += WBLANK_START;
-      }
-      else if(final_wblank.size() > 2)
-      {
-        final_wblank += "; "_u;
-      }
+      if(seen_wblank) {
+        if(final_wblank.empty())
+        {
+          final_wblank += WBLANK_START;
+        }
+        else if(final_wblank.size() > 2)
+        {
+          final_wblank += "; "_u;
+        }
 
-      final_wblank.append(last_wblank, 2, last_wblank.size()-4); //add wblank without brackets [[..]]
+        final_wblank.append(last_wblank, 2, last_wblank.size()-4); //add wblank without brackets [[..]]
+      }
+      else {
+        need_end_wblank = true;
+      }
       last_wblank.clear();
     }
     else
     {
+      seen_wblank = true;
       last_wblank = wblankqueue.front();
     }
     wblankqueue.pop();
@@ -822,7 +837,6 @@ FSTProcessor::combineWblanks()
     final_wblank += WBLANK_END;
     need_end_wblank = true;
   }
-
   return final_wblank;
 }
 
